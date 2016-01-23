@@ -18,11 +18,11 @@ require('macaddress').all(function(err,addresses){
       logServerMessages(s,"server");
       setupServerResponse(s);
       console.log("Server running on:"+address);
-      var c = client.createClient(config);
+/*      var c = client.createClient(config);
       logClientMessages(c,"client");
       setTimeout(function(){
         startRequest( c , mac[0] );
-      },500);
+      },500);*/
     });
 });
 
@@ -102,9 +102,18 @@ function setupServerResponse(server){
         xid: origPkt.xid,
         chaddr: origPkt.chaddr.address,
         yiaddr: ip,
+        sname: "MyServer",
         options: {
             dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPOFFER,
+            ipAddressLeaseTime: 600,
+            serverIdentifier: "192.168.0.11" // myIP Address
         }
+    }
+    if ( origPkt.giaddr ){
+      pkt.giaddr = origPkt.giaddr.address;
+    }
+    if ( origPkt.options.clientIdentifier ){
+      pkt.options.clientIdentifier = origPkt.options.clientIdentifier;
     }
 
     var offer = server.createOfferPacket(pkt);
@@ -119,8 +128,11 @@ function setupServerResponse(server){
         chaddr: origPkt.chaddr.address,
         yiaddr: ip,
         options: {
-            dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPOFFER,
+            dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPOFFER
         }
+    }
+    if ( origPkt.options.clientIdentifier ){
+      pkt.options.clientIdentifier = origPkt.options.clientIdentifier;
     }
 
     var offer = server.createOfferPacket(pkt);
