@@ -6,7 +6,7 @@ var client = require('./client');
 var config = { serverPort: 1067 , clientPort:1066 }
 
 
-require('node-macaddress').all(function(err,addresses){
+require('macaddress').all(function(err,addresses){
     if ( err ) return console.log(err);
     var mac = [];
     for ( var id in addresses ){
@@ -45,7 +45,39 @@ function logServerMessages(server,id){
 }
 
 function setupServerResponse(server){
+  var staticAddresses = {};
+  var pendingAddresses = {};
+  var freeAddresses = [ "192.168.5.1" , "192.168.5.2" , "192.168.5.3" , "192.168.5.4" ];
+  server.on('dhcpDiscover', function(pkt) {
+    var mac = pkt.chaddr.address;
+    // check if this is allocated
+    if ( mac in staticAddresses ){
+      sendOfferResponse( pkt , staticAddresses[mac] );
+    }else{
+      if ( freeAddresses.length > 0 ){
+        var ip = freeAddresses.pop();
+        pendingAddresses[ mac ] = ip; // place in pending
+        sendOfferResponse( pkt , ip );
+      }else{
+        // no free addresesses, ignore
+      }
+    }
+  });
+  function sendOfferResponse( origPkt , ip ){
+    console.log("offering "+ip);
+    var pkt = {
+        xid: origPkt.xid,
+        chaddr: origPkt.chaddr.address,
+        options: {
+            dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPOFFER,
+        }
+    }
 
+    var offer = server.createOfferPacket(pkt);
+    server.sendPacket(offer, {port: config.serverPort}, function() {
+        console.log('dhcpOffer: sent');
+    });
+  }
 }
 
 function logClientMessages(client,id){
