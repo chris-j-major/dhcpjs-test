@@ -68,13 +68,14 @@ function setupServerResponse(server){
     var pkt = {
         xid: origPkt.xid,
         chaddr: origPkt.chaddr.address,
+        yiaddr: ip,
         options: {
             dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPOFFER,
         }
     }
 
     var offer = server.createOfferPacket(pkt);
-    server.sendPacket(offer, {port: config.serverPort}, function() {
+    server.broadcastPacket(offer, {port: config.clientPort}, function() {
         console.log('dhcpOffer: sent');
     });
   }
