@@ -52,7 +52,9 @@ function setupServerResponse(server){
     var mac = pkt.chaddr.address;
     // check if this is allocated
     if ( mac in staticAddresses ){
-      sendOfferResponse( pkt , staticAddresses[mac] );
+      pendingAddresses[ mac ] = staticAddresses[ mac ]
+      delete pendingAddresses[ mac ];
+      sendOfferResponse( pkt , pendingAddresses[mac] );
     }else{
       if ( freeAddresses.length > 0 ){
         var ip = freeAddresses.pop();
@@ -60,11 +62,56 @@ function setupServerResponse(server){
         sendOfferResponse( pkt , ip );
       }else{
         // no free addresesses, ignore
+        console.log("Addresses exausted!");
       }
+    }
+  });
+  server.on('dhcpRequest', function(pkt) {
+    var mac = pkt.chaddr.address;
+    if ( mac in pendingAddresses ){
+      staticAddresses[mac] = pendingAddresses[mac];
+      delete pendingAddresses[mac];
+      sendAckResponse( pkt , staticAddresses[mac] );
+    }else{
+      console.log("Unexpected accept from "+mac);
+    }
+  });
+  server.on('dhcpReject', function(pkt) {
+    var mac = pkt.chaddr.address;
+    if ( mac in pendingAddresses ){
+      freeAddresses.push( pendingAddresses[mac] );
+      delete pendingAddresses[mac];
+    }else{
+      console.log("Unexpected reject from "+mac);
+    }
+  });
+  server.on('dhcpRelease', function(pkt) {
+    var mac = pkt.chaddr.address;
+    if ( mac in staticAddresses ){
+      freeAddresses.push( staticAddresses[mac] );
+      delete staticAddresses[mac];
+    }else{
+      console.log("Unexpected release from "+mac);
     }
   });
   function sendOfferResponse( origPkt , ip ){
     console.log("offering "+ip);
+    var pkt = {
+        xid: origPkt.xid,
+        chaddr: origPkt.chaddr.address,
+        yiaddr: ip,
+        options: {
+            dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPOFFER,
+        }
+    }
+
+    var offer = server.createOfferPacket(pkt);
+    server.broadcastPacket(offer, {port: config.clientPort}, function() {
+        console.log('dhcpOffer: sent');
+    });
+  }
+  function sendAckResponse( origPkt , ip ){
+    console.log("ack "+ip);
     var pkt = {
         xid: origPkt.xid,
         chaddr: origPkt.chaddr.address,
