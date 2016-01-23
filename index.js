@@ -53,7 +53,7 @@ function setupServerResponse(server){
     // check if this is allocated
     if ( mac in staticAddresses ){
       pendingAddresses[ mac ] = staticAddresses[ mac ]
-      delete pendingAddresses[ mac ];
+      delete staticAddresses[ mac ];
       sendOfferResponse( pkt , pendingAddresses[mac] );
     }else{
       if ( freeAddresses.length > 0 ){
@@ -65,6 +65,7 @@ function setupServerResponse(server){
         console.log("Addresses exausted!");
       }
     }
+    console.dir( pendingAddresses );
   });
   server.on('dhcpRequest', function(pkt) {
     var mac = pkt.chaddr.address;
@@ -74,6 +75,7 @@ function setupServerResponse(server){
       sendAckResponse( pkt , staticAddresses[mac] );
     }else{
       console.log("Unexpected accept from "+mac);
+      console.dir( pendingAddresses );
     }
   });
   server.on('dhcpReject', function(pkt) {
@@ -134,6 +136,22 @@ function logClientMessages(client,id){
   });
   client.on('dhcpOffer', function(pkt) {
       console.log(id+' dhcpOffer:', util.inspect(pkt, false, 3));
+      // now we send the requst for this ip
+      var mac = pkt.chaddr.address;
+      var pkt = {
+          xid: 0x01,
+          chaddr: mac,
+          options: {
+              dhcpMessageType: dhcpjs.Protocol.DHCPMessageType.DHCPREQUEST,
+              clientIdentifier: /*hostname||*/'MyMachine',
+              requestedIpAddress: pkt.yiaddr
+          }
+      }
+
+      var request = client.createRequestPacket(pkt);
+      client.broadcastPacket(request, {port: config.serverPort}, function() {
+          console.log('dhcpRequest: sent');
+      });
   });
   client.on('dhcpAck', function(pkt) {
       console.log(id+' dhcpAck:', util.inspect(pkt, false, 3));
