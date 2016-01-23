@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dhcpjs": "^0.2.0"
+    "dhcpjs": "^0.2.0",
+    "node-macaddress": "^0.2.4"
   }
 }

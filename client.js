@@ -1,11 +1,11 @@
 module.exports = {
-  createClient:function createClient(){
+  createClient:function createClient( config ){
     var util = require('util');
     var dhcpjs = require('dhcpjs');
 
     var client = new dhcpjs.Client();
-    client.bind('0.0.0.0', 1068, function() {
-        console.log('bound to 0.0.0.0:1068');
+    client.bind('0.0.0.0', config.clientPort, function() {
+        console.log('bound to 0.0.0.0:'+config.clientPort);
     });
     return client;
   }

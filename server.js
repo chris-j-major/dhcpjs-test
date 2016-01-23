@@ -1,8 +1,8 @@
 module.exports = {
-  createServer:function createServer( readyCallback ){
+  createServer:function createServer( config , readyCallback ){
     var util = require('util');
     var dhcpjs = require('dhcpjs');
-    var server = dhcpjs.createServer({clientPort:1068});
+    var server = dhcpjs.createServer();
     server.on('message', function(m) {
         console.log(util.inspect(m, false, 3));
     });
@@ -10,7 +10,7 @@ module.exports = {
         console.log('listening on ' + address);
         readyCallback(address);
     });
-    server.bind(null,1067);
+    server.bind(null,config.serverPort);
     return server;
   }
 }
